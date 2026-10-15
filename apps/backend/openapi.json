@@ -43439,8 +43439,8 @@
           "horizonUrl",
           "sorobanRpcUrl",
           "networkPassphrase",
-          "contracts",
-          "adminAddress"
+          "adminAddress",
+          "contracts"
         ]
       },
       "DataProcessingWebhookDto": {
