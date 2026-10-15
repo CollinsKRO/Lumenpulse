@@ -6,7 +6,8 @@
     "scripts": {
         "deploy": "ts-node deploy.ts",
         "smoke": "ts-node smoke.ts",
-        "validate:upgrade-rehearsal": "node validate-upgrade-rehearsal.js"
+        "validate:upgrade-rehearsal": "node validate-upgrade-rehearsal.js",
+        "validate:admin-rotation-rehearsal": "node validate-admin-rotation-rehearsal.js"
     },
     "dependencies": {
         "@stellar/stellar-sdk": "^14.4.3",
