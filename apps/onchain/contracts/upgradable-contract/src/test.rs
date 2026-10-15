@@ -836,8 +836,7 @@ fn test_timelock_cancel_leaves_original_admin_intact() {
     // Accept path was never involved; there is no pending two-step proposal.
     assert_eq!(client.get_proposed_admin(), None);
     // Old admin retains privileges; the proposed admin never gained any.
-    let retry_id =
-        client.queue_operation(&admin, &TimelockAction::SetAdmin(new_admin.clone()));
+    let retry_id = client.queue_operation(&admin, &TimelockAction::SetAdmin(new_admin.clone()));
     assert_eq!(
         client.get_operation_status(&retry_id),
         OperationStatus::Pending
@@ -894,10 +893,7 @@ fn test_admin_rotation_e2e_timelock_then_cancelled_rotation() {
 
     // --- Cancelled rotation leaves the rotated admin intact ---
     client.propose_admin_rotation(&rotated_admin, &cancelled_admin);
-    assert_eq!(
-        client.get_proposed_admin(),
-        Some(cancelled_admin.clone())
-    );
+    assert_eq!(client.get_proposed_admin(), Some(cancelled_admin.clone()));
     client.cancel_admin_rotation(&rotated_admin);
     assert_eq!(client.get_admin(), rotated_admin);
     assert_eq!(client.get_proposed_admin(), None);

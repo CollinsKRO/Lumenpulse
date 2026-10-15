@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { DeploymentManifestService } from './deployment-manifest.service';
 import { ContractDeploymentManifest } from './entities/contract-deployment-manifest.entity';
 import { ConfigService } from '../config/config.service';
@@ -10,6 +12,9 @@ import { ContractCapabilityService } from './contract-capability.service';
  * Issue #1626 — admin key rotation must be picked up without a restart.
  * `refreshManifest()` tracks top-level + per-contract `admin_address` and
  * propagates them to `ConfigService` in-memory overrides.
+ *
+ * Uses real temp manifest files (no `fs` mocking) by pointing `process.cwd()`
+ * at a temp repo root containing `apps/onchain/testnet-manifest.json`.
  */
 describe('DeploymentManifestService admin rotation (issue #1626)', () => {
   let service: DeploymentManifestService;
@@ -56,6 +61,23 @@ describe('DeploymentManifestService admin rotation (issue #1626)', () => {
       },
     });
 
+  let tmpDirs: string[] = [];
+
+  const writeManifest = (dir: string, content: string): void => {
+    mkdirSync(path.join(dir, 'apps', 'onchain'), { recursive: true });
+    writeFileSync(
+      path.join(dir, 'apps', 'onchain', 'testnet-manifest.json'),
+      content,
+    );
+  };
+
+  const makeRepoRoot = (content: string): string => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'manifest-'));
+    tmpDirs.push(dir);
+    writeManifest(dir, content);
+    return dir;
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -79,14 +101,15 @@ describe('DeploymentManifestService admin rotation (issue #1626)', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    for (const dir of tmpDirs) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    tmpDirs = [];
   });
 
   it('picks up a top-level admin rotation without a restart', async () => {
-    jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-    const readSpy = jest
-      .spyOn(fs, 'readFileSync')
-      .mockReturnValueOnce(manifestWithAdmin(OLD_ADMIN) as unknown as Buffer)
-      .mockReturnValueOnce(manifestWithAdmin(NEW_ADMIN) as unknown as Buffer);
+    const repoRoot = makeRepoRoot(manifestWithAdmin(OLD_ADMIN));
+    const cwdSpy = jest.spyOn(process, 'cwd').mockReturnValue(repoRoot);
 
     await service.refreshManifest();
     expect(mockConfigService.setStellarAdminAddress).toHaveBeenCalledWith(
@@ -94,6 +117,7 @@ describe('DeploymentManifestService admin rotation (issue #1626)', () => {
     );
     expect(service.getLastKnownAdminAddress()).toBe(OLD_ADMIN);
 
+    writeManifest(repoRoot, manifestWithAdmin(NEW_ADMIN));
     await service.refreshManifest();
     expect(mockConfigService.setStellarAdminAddress).toHaveBeenCalledWith(
       NEW_ADMIN,
@@ -104,14 +128,12 @@ describe('DeploymentManifestService admin rotation (issue #1626)', () => {
       mockContractCapabilityService.invalidateCache,
     ).toHaveBeenCalled();
 
-    expect(readSpy).toHaveBeenCalledTimes(2);
+    cwdSpy.mockRestore();
   });
 
   it('does not propagate admin when the manifest admin is unchanged', async () => {
-    jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-    jest
-      .spyOn(fs, 'readFileSync')
-      .mockReturnValue(manifestWithAdmin(OLD_ADMIN) as unknown as Buffer);
+    const repoRoot = makeRepoRoot(manifestWithAdmin(OLD_ADMIN));
+    const cwdSpy = jest.spyOn(process, 'cwd').mockReturnValue(repoRoot);
 
     await service.refreshManifest();
     const callsAfterFirst =
@@ -122,15 +144,13 @@ describe('DeploymentManifestService admin rotation (issue #1626)', () => {
     expect(
       mockConfigService.setStellarAdminAddress.mock.calls.length,
     ).toBe(callsAfterFirst);
+
+    cwdSpy.mockRestore();
   });
 
   it('tracks per-contract admin overrides (treasury)', async () => {
-    jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-    jest
-      .spyOn(fs, 'readFileSync')
-      .mockReturnValue(
-        manifestWithAdmin(OLD_ADMIN, NEW_ADMIN) as unknown as Buffer,
-      );
+    const repoRoot = makeRepoRoot(manifestWithAdmin(OLD_ADMIN, NEW_ADMIN));
+    const cwdSpy = jest.spyOn(process, 'cwd').mockReturnValue(repoRoot);
 
     await service.refreshManifest();
 
@@ -140,5 +160,7 @@ describe('DeploymentManifestService admin rotation (issue #1626)', () => {
     expect(service.getLastKnownContractAdmins()).toEqual(
       expect.objectContaining({ treasury: NEW_ADMIN }),
     );
+
+    cwdSpy.mockRestore();
   });
 });
