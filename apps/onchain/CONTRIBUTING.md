@@ -193,3 +193,34 @@ current ones instead of migrating in place.
   description so backend indexers know to expect the extra topic once
   the change deploys, the same way any other topic-shape change would be
   called out.
+
+## Golden payload fixtures (issue #1623)
+
+Versioning alone tells a consumer *that* an event changed; it doesn't stop a
+schema change from passing `cargo test` unnoticed. Every event that adopts
+the standard above is therefore pinned by a committed golden fixture under
+`contracts/event-golden/fixtures/<contract>/<event>.v<N>.json`, compared on
+every `cargo test` run. See
+[`contracts/event-golden/README.md`](contracts/event-golden/README.md) for the
+fixture format and the full regeneration workflow.
+
+The short version, when you intentionally change an event:
+
+1. If the change is schema-breaking, bump `EVENT_VERSION` and keep the old
+   shape under a `V<N>`-suffixed struct (as above).
+2. Regenerate the fixture for the new version:
+
+   ```sh
+   UPDATE_GOLDEN=1 cargo test -p treasury
+   UPDATE_GOLDEN=1 cargo test -p lumenpulse-community-curation
+   ```
+
+   Regeneration refuses to overwrite an existing fixture at the same version,
+   so a payload change without a version bump fails loudly.
+3. Commit the fixture diff with the code change and run `cargo test`. The
+   backend mapper's `event-golden-fixtures.spec.ts` consumes the same files,
+   so a renamed event that the mapper no longer recognises also fails CI.
+
+New event-versioned events must be added to the relevant
+`contracts/<contract>/src/golden.rs` case list and a fixture generated in the
+same change.

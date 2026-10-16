@@ -177,7 +177,17 @@ Verify WASM sizes against configured budgets in [`apps/onchain/wasm-budgets.json
 node ../../scripts/check-wasm-size.mjs
 ```
 
-Ensure all generated binaries exist under `apps/onchain/target/wasm32-unknown-unknown/release/`:
+Optimize the binaries for deployment. The raw cargo output is **rejected** by Soroban (`reference-types not enabled`) and costs about 30% more to upload, so `scripts/deploy.ts` uploads only the optimized copies:
+
+```bash
+# From repo root
+npm ci --prefix scripts
+npm run --prefix scripts wasm:optimize
+```
+
+To measure what deploying the suite will cost before you spend anything, see [Mainnet Readiness §1](MAINNET_READINESS.md#1-deployment-cost) (`npm run --prefix scripts deploy:cost`).
+
+Ensure all generated binaries exist under `apps/onchain/target/wasm32-unknown-unknown/release/optimized/`:
 - `lumen_token.wasm`
 - `contributor_registry.wasm`
 - `project_registry.wasm`
@@ -210,7 +220,7 @@ The repository provides an automated, dependency-aware deployment runner in [`sc
    ```
 
    The script automatically:
-   - Reads compiled WASM binaries.
+   - Reads the optimized WASM binaries from `release/optimized/`.
    - Uploads WASM bytecode to Soroban RPC (or falls back to signed Horizon transactions).
    - Computes deterministic SHA-256 WASM hashes.
    - Instantiates each contract.
@@ -224,7 +234,7 @@ If running manual deployments via the Soroban CLI:
 ```bash
 # 1. Upload WASM bytecode
 TOKEN_WASM_HASH=$(soroban contract install \
-  --wasm apps/onchain/target/wasm32-unknown-unknown/release/lumen_token.wasm \
+  --wasm apps/onchain/target/wasm32-unknown-unknown/release/optimized/lumen_token.wasm \
   --source testnet-admin \
   --network testnet)
 
@@ -248,7 +258,7 @@ soroban contract invoke \
 
 # 4. Deploy and Initialize Treasury with Token Address
 TREASURY_WASM_HASH=$(soroban contract install \
-  --wasm apps/onchain/target/wasm32-unknown-unknown/release/treasury.wasm \
+  --wasm apps/onchain/target/wasm32-unknown-unknown/release/optimized/treasury.wasm \
   --source testnet-admin \
   --network testnet)
 

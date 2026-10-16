@@ -956,4 +956,6 @@ impl TreasuryContract {
 }
 
 #[cfg(test)]
+mod golden;
+#[cfg(test)]
 mod test;

@@ -24,6 +24,11 @@
  *   • Rust toolchain matching apps/onchain/rust-toolchain.toml
  *   • cargo build --target wasm32-unknown-unknown --release already run, OR
  *     pass --build to have this script run the build automatically.
+ *
+ * Pass --optimized to verify the binaryen-optimized artifacts in
+ * release/optimized/ (produced by `npm run --prefix scripts wasm:optimize`)
+ * instead of the raw cargo output. Those are what scripts/deploy.ts uploads,
+ * so manifest hashes recorded from a deploy.ts run must be checked this way.
  */
 
 import { createHash } from "node:crypto";
@@ -35,15 +40,16 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ONCHAIN_ROOT = path.resolve(__dirname, "..");
 const MANIFEST_PATH = path.join(ONCHAIN_ROOT, "testnet-manifest.json");
+// ── CLI flags ────────────────────────────────────────────────────────────────
+const args = process.argv.slice(2);
+const OPTIMIZED = args.includes("--optimized");
 const WASM_DIR = path.join(
   ONCHAIN_ROOT,
   "target",
   "wasm32-unknown-unknown",
   "release",
+  ...(OPTIMIZED ? ["optimized"] : []),
 );
-
-// ── CLI flags ────────────────────────────────────────────────────────────────
-const args = process.argv.slice(2);
 const BUILD_FIRST = args.includes("--build");
 const VERBOSE = args.includes("--verbose") || args.includes("-v");
 
@@ -105,6 +111,16 @@ if (BUILD_FIRST) {
     );
   } catch {
     fail("cargo build failed — see output above.");
+  }
+  if (OPTIMIZED) {
+    try {
+      execSync("node optimize-wasm.mjs", {
+        cwd: path.resolve(ONCHAIN_ROOT, "../../scripts"),
+        stdio: "inherit",
+      });
+    } catch {
+      fail("WASM optimization failed — see output above.");
+    }
   }
 }
 

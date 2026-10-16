@@ -22,10 +22,11 @@ use crate::{MatchingPoolContract, MatchingPoolContractClient};
 use proptest::prelude::*;
 use soroban_sdk::{
     symbol_short,
-    testutils::{Address as _, Ledger},
+    testutils::Address as _,
     token::{StellarAssetClient, TokenClient},
     vec, Address, Env, Vec,
 };
+use test_utils::{create_token, set_time, test_env};
 
 // ─── Shared helpers ──────────────────────────────────────────────────────────
 
@@ -42,14 +43,6 @@ fn amount() -> impl Strategy<Value = i128> {
 /// the square-root/overflow paths of `compute_qf_score` (MM-3).
 fn extreme_amount() -> impl Strategy<Value = i128> {
     prop_oneof![amount(), (i128::MAX / 2)..=i128::MAX]
-}
-
-fn create_token<'a>(env: &Env, admin: &Address) -> (TokenClient<'a>, StellarAssetClient<'a>) {
-    let addr = env.register_stellar_asset_contract_v2(admin.clone());
-    (
-        TokenClient::new(env, &addr.address()),
-        StellarAssetClient::new(env, &addr.address()),
-    )
 }
 
 /// Fresh Env + initialized contract + token, admin set as `Address`.
@@ -77,7 +70,7 @@ fn open_round(
     admin: &Address,
     token: &TokenClient,
 ) -> u64 {
-    env.ledger().set_timestamp(START);
+    set_time(env, START);
     client.create_round(admin, &symbol_short!("Round"), &token.address, &START, &END)
 }
 
@@ -162,8 +155,7 @@ mod qf_score {
         fn qf_score_is_non_negative_and_never_panics(
             contribs in proptest::collection::vec((0u64..4u64, amount()), 1..=16),
         ) {
-            let env = Env::default();
-            env.mock_all_auths();
+            let env = test_env();
             let (client, admin, token, _) = setup(&env);
             let round_id = open_round(&env, &client, &admin, &token);
 
@@ -192,8 +184,7 @@ mod qf_score {
         fn qf_score_extreme_amounts_never_panic(
             amounts in proptest::collection::vec(extreme_amount(), 1..=4),
         ) {
-            let env = Env::default();
-            env.mock_all_auths();
+            let env = test_env();
             let (client, admin, token, _) = setup(&env);
             let round_id = open_round(&env, &client, &admin, &token);
 
@@ -221,8 +212,7 @@ mod qf_score {
     // the case is covered even without proptest's random search.
     #[test]
     fn qf_score_i128_max_contribution_never_panics() {
-        let env = Env::default();
-        env.mock_all_auths();
+        let env = test_env();
         let (client, admin, token, _) = setup(&env);
         let round_id = open_round(&env, &client, &admin, &token);
         client.approve_project(&admin, &round_id, &1u64);
@@ -248,8 +238,7 @@ mod qf_score {
             base in proptest::collection::vec(amount(), 0..=8),
             extra in amount(),
         ) {
-            let env = Env::default();
-            env.mock_all_auths();
+            let env = test_env();
             let (client, admin, token, _) = setup(&env);
             let round_id = open_round(&env, &client, &admin, &token);
             client.approve_project(&admin, &round_id, &1u64);
@@ -293,14 +282,13 @@ mod distribution {
             ),
             pool_amount in amount(),
         ) {
-            let env = Env::default();
-            env.mock_all_auths();
+            let env = test_env();
             let (client, admin, token, token_admin) = setup(&env);
             let round_id = build_contributed_round(
                 &env, &client, &admin, &token, &token_admin, &projects, pool_amount,
             );
 
-            env.ledger().set_timestamp(END + 1);
+            set_time(&env, END + 1);
             client.finalize_round(&admin, &round_id);
 
             let owners = owners_for(&env, projects.len());
@@ -334,8 +322,7 @@ mod distribution {
             ),
             pool_amount in amount(),
         ) {
-            let env = Env::default();
-            env.mock_all_auths();
+            let env = test_env();
             let (client, admin, token, token_admin) = setup(&env);
             let round_id = build_contributed_round(
                 &env, &client, &admin, &token, &token_admin, &projects, pool_amount,
@@ -343,7 +330,7 @@ mod distribution {
 
             let preview = client.preview_distribution(&round_id);
 
-            env.ledger().set_timestamp(END + 1);
+            set_time(&env, END + 1);
             client.finalize_round(&admin, &round_id);
             let owners = owners_for(&env, projects.len());
             let distributed = client.distribute_matching_funds(&admin, &round_id, &owners);
@@ -384,8 +371,7 @@ mod distribution {
         ) {
             let target = target_idx % projects.len();
 
-            let env = Env::default();
-            env.mock_all_auths();
+            let env = test_env();
             let (client, admin, token, token_admin) = setup(&env);
             let round_id = build_contributed_round(
                 &env, &client, &admin, &token, &token_admin, &projects, 1_000_000_000i128,
@@ -425,8 +411,7 @@ mod caps {
             cap in amount(),
             amounts in proptest::collection::vec(amount(), 1..=10),
         ) {
-            let env = Env::default();
-            env.mock_all_auths();
+            let env = test_env();
             let (client, admin, token, _) = setup(&env);
             let round_id = open_round(&env, &client, &admin, &token);
             client.approve_project(&admin, &round_id, &1u64);
@@ -455,8 +440,7 @@ mod caps {
             amounts in proptest::collection::vec(amount(), 1..=12),
             pool_amount in amount(),
         ) {
-            let env = Env::default();
-            env.mock_all_auths();
+            let env = test_env();
             let (client, admin, token, token_admin) = setup(&env);
             let round_id = open_round(&env, &client, &admin, &token);
             for pid in 0u64..3u64 {
@@ -472,7 +456,7 @@ mod caps {
 
             do_fund_pool(&client, &token_admin, &admin, round_id, pool_amount);
 
-            env.ledger().set_timestamp(END + 1);
+            set_time(&env, END + 1);
             client.finalize_round(&admin, &round_id);
 
             let owners = owners_for(&env, 3);

@@ -616,6 +616,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40404c3f5f511ec4da6fe866ddf6a717c309fdbb69fbbad7b0f3edab8f2e835f"
 
 [[package]]
+name = "event-golden"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "serde",
+ "serde_json",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "event-versioning"
 version = "0.0.0"
 
@@ -630,6 +640,7 @@ name = "feature_flags"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
+ "test_utils",
 ]
 
 [[package]]
@@ -925,6 +936,7 @@ name = "lumen_token"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
+ "test_utils",
  "version-interface",
 ]
 
@@ -932,6 +944,7 @@ dependencies = [
 name = "lumenpulse-community-curation"
 version = "0.1.0"
 dependencies = [
+ "event-golden",
  "event-versioning",
  "soroban-sdk",
 ]
@@ -954,6 +967,7 @@ dependencies = [
  "proptest",
  "reentrancy-guard",
  "soroban-sdk",
+ "test_utils",
 ]
 
 [[package]]
@@ -1083,6 +1097,7 @@ name = "pricing_adapter"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
+ "test_utils",
 ]
 
 [[package]]
@@ -1134,6 +1149,7 @@ name = "protocol_registry"
 version = "0.0.0"
 dependencies = [
  "soroban-sdk",
+ "test_utils",
 ]
 
 [[package]]
@@ -1736,6 +1752,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "test_utils"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1790,6 +1813,7 @@ dependencies = [
 name = "treasury"
 version = "0.1.0"
 dependencies = [
+ "event-golden",
  "event-versioning",
  "idempotency-guard",
  "proptest",

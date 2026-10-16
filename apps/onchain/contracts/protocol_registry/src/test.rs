@@ -6,10 +6,11 @@ use soroban_sdk::{
     testutils::{Address as _, Ledger},
     Address, Env,
 };
+use test_utils::test_env;
 
 fn setup(env: &Env) -> (ProtocolRegistryContractClient<'_>, Address) {
-    let admin = Address::generate(env);
-    let id = env.register(ProtocolRegistryContract, ());
+    let admin = test_utils::account(env);
+    let id = test_utils::register_contract(env, ProtocolRegistryContract);
     let client = ProtocolRegistryContractClient::new(env, &id);
     client.initialize(&admin);
     (client, admin)
@@ -19,16 +20,14 @@ fn setup(env: &Env) -> (ProtocolRegistryContractClient<'_>, Address) {
 
 #[test]
 fn test_initialize() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
     assert_eq!(client.get_admin(), admin);
 }
 
 #[test]
 fn test_double_init_fails() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
     assert_eq!(
         client.try_initialize(&admin),
@@ -40,8 +39,7 @@ fn test_double_init_fails() {
 
 #[test]
 fn test_register_module() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let vault_addr = Address::generate(&env);
@@ -55,8 +53,7 @@ fn test_register_module() {
 
 #[test]
 fn test_register_duplicate_fails() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let addr = Address::generate(&env);
@@ -69,8 +66,7 @@ fn test_register_duplicate_fails() {
 
 #[test]
 fn test_non_admin_register_fails() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, _) = setup(&env);
 
     let rando = Address::generate(&env);
@@ -85,8 +81,7 @@ fn test_non_admin_register_fails() {
 
 #[test]
 fn test_update_module() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let v1 = Address::generate(&env);
@@ -103,8 +98,7 @@ fn test_update_module() {
 
 #[test]
 fn test_update_version_must_increment() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let addr = Address::generate(&env);
@@ -125,8 +119,7 @@ fn test_update_version_must_increment() {
 
 #[test]
 fn test_update_nonexistent_module_fails() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let addr = Address::generate(&env);
@@ -140,8 +133,7 @@ fn test_update_nonexistent_module_fails() {
 
 #[test]
 fn test_resolve_returns_active_address() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let addr = Address::generate(&env);
@@ -152,8 +144,7 @@ fn test_resolve_returns_active_address() {
 
 #[test]
 fn test_resolve_unknown_module_fails() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, _) = setup(&env);
 
     assert_eq!(
@@ -166,8 +157,7 @@ fn test_resolve_unknown_module_fails() {
 
 #[test]
 fn test_deactivate_module() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let addr = Address::generate(&env);
@@ -190,8 +180,7 @@ fn test_deactivate_module() {
 
 #[test]
 fn test_activate_module() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let addr = Address::generate(&env);
@@ -205,8 +194,7 @@ fn test_activate_module() {
 
 #[test]
 fn test_update_reactivates_deactivated_module() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let v1 = Address::generate(&env);
@@ -223,8 +211,7 @@ fn test_update_reactivates_deactivated_module() {
 
 #[test]
 fn test_is_active_unknown_returns_false() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, _) = setup(&env);
 
     assert!(!client.is_active(&symbol_short!("ghost")));
@@ -234,8 +221,7 @@ fn test_is_active_unknown_returns_false() {
 
 #[test]
 fn test_multiple_modules_independent() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let vault_addr = Address::generate(&env);
@@ -261,8 +247,7 @@ fn test_multiple_modules_independent() {
 
 #[test]
 fn test_pause_blocks_register() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     client.pause(&admin);
@@ -276,8 +261,7 @@ fn test_pause_blocks_register() {
 
 #[test]
 fn test_pause_blocks_update() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let v1 = Address::generate(&env);
@@ -293,8 +277,7 @@ fn test_pause_blocks_update() {
 
 #[test]
 fn test_unpause_restores_writes() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     client.pause(&admin);
@@ -309,8 +292,7 @@ fn test_unpause_restores_writes() {
 
 #[test]
 fn test_set_admin() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let new_admin = Address::generate(&env);
@@ -331,8 +313,7 @@ fn test_set_admin() {
 
 #[test]
 fn test_ttl_extended_after_read_write() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
     let (client, admin) = setup(&env);
 
     let addr = Address::generate(&env);

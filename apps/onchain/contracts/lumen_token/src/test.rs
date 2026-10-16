@@ -6,11 +6,11 @@ use soroban_sdk::{
     testutils::{Address as _, Events, Ledger},
     Address, BytesN, Env, String,
 };
+use test_utils::test_env;
 
 #[test]
 fn test_token() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let user1 = Address::generate(&env);
@@ -44,8 +44,7 @@ fn test_token() {
 #[test]
 #[should_panic(expected = "account is frozen")]
 fn test_freeze() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let user1 = Address::generate(&env);
@@ -73,8 +72,7 @@ fn test_freeze() {
 
 #[test]
 fn test_set_admin_transfers_role() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let new_admin = Address::generate(&env);
@@ -100,8 +98,7 @@ fn test_set_admin_transfers_role() {
 #[test]
 #[should_panic]
 fn test_only_admin_can_upgrade() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let non_admin = Address::generate(&env);
@@ -128,8 +125,7 @@ fn test_only_admin_can_upgrade() {
 /// advance — the TTL bump on write keeps the entry alive.
 #[test]
 fn test_balance_entry_accessible_after_ledger_advance() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
@@ -157,8 +153,7 @@ fn test_balance_entry_accessible_after_ledger_advance() {
 /// entry survives a second large ledger jump.
 #[test]
 fn test_ttl_extended_after_read_write() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
@@ -192,8 +187,7 @@ fn test_allowance_ttl_extended_to_expiration_ledger() {
     // must survive on-chain long enough to reach its own logical
     // `expiration_ledger` — a physical TTL shorter than that would let the
     // entry get archived early and silently read back as a zero allowance.
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let owner = Address::generate(&env);
@@ -227,8 +221,7 @@ fn test_allowance_ttl_extended_to_expiration_ledger() {
 
 #[test]
 fn test_mint_emits_event() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
@@ -247,8 +240,7 @@ fn test_mint_emits_event() {
 
 #[test]
 fn test_freeze_and_unfreeze_emit_events() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
@@ -273,8 +265,7 @@ fn test_freeze_and_unfreeze_emit_events() {
 
 #[test]
 fn test_approve_emits_event() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let owner = Address::generate(&env);
@@ -294,8 +285,7 @@ fn test_approve_emits_event() {
 
 #[test]
 fn test_transfer_emits_event() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let user1 = Address::generate(&env);
@@ -317,8 +307,7 @@ fn test_transfer_emits_event() {
 
 #[test]
 fn test_transfer_from_emits_event() {
-    let env = Env::default();
-    env.mock_all_auths();
+    let env = test_env();
 
     let admin = Address::generate(&env);
     let owner = Address::generate(&env);

@@ -352,4 +352,6 @@ fn validate_metadata(m: &ProjectMetadata) -> Result<(), CurationError> {
 }
 
 #[cfg(test)]
+mod golden;
+#[cfg(test)]
 mod test;
